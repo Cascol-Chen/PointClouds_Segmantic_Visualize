@@ -1,4 +1,4 @@
-The project is based on vis_gui.py in open3d examples and some new features are added
+The project is based on vis_gui.py in open3d examples and some new features are added. It visualize the pointclouds and lidarseg from **Nuscenes**. You can easily customize to fullfill your requirements, such as different semantic label names, different way to organize data and etc. This will be a good starter to learn open3d and Nuscenes Dataset.
 
 <img src="assets\video.gif" style="zoom: 200%;" />
 
