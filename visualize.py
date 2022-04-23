@@ -935,6 +935,7 @@ class AppWindow:
         self.rd = self.reader[0]
         self.rd_state = AppWindow.STATE_GROUND
         self._reader_slider.set_limits(0,self.reader.len-1)
+        self._reader_slider.int_value = 0
         self.settings.bg_color = gui.Color(0,0,0)
         self._apply_settings()
         self._show()
