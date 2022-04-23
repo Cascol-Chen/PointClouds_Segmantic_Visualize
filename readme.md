@@ -8,7 +8,4 @@ The project is based on vis_gui.py in open3d examples and some new features are 
 * Change the color of each semantic label and save the setting
 * Control with keyboard to move left, right, up, down
 
-```html
-<iframe height=498 width=510 src="assets/video.mp4">
-```
-
+<img src="D:\CodeVS\visualize\PointClouds_Segmantic_Visualize\assets\video.gif" style="zoom: 200%;" />
