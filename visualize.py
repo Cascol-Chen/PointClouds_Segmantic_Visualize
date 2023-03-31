@@ -23,12 +23,13 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 # ----------------------------------------------------------------------------
-
+import time
 import glob
 import json
 import numpy as np
 import open3d as o3d
 
+import threading
 import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
 import os
@@ -38,11 +39,10 @@ import sys
 from tools.NusceneRender import NusceneRender
 from tools.common import create_color_map
 from tools.reader import Reader
-from tools.AutoPlay import AutoPlay
+# from tools.AutoPlay import AutoPlay
 from tools.custom import map_name_from_segmentation_class_to_segmentation_index
 
 isMacOS = (platform.system() == "Darwin")
-play_thread = ''
 
 # rd = NusceneRender(
 #         'data/data0/n015-2018-08-01-15-10-21+0800__LIDAR_TOP__1533107923397733.pcd.bin',
@@ -235,6 +235,9 @@ class AppWindow:
     ]
 
     def __init__(self, width, height):
+
+        self.auto_play_flag = False
+        self.auto_play_thread = None
 
         self.has_set_camera = False
         self.has_changed_color = False
@@ -832,9 +835,10 @@ class AppWindow:
         self.export_image(filename, frame.width, frame.height)
 
     def _on_menu_quit(self):
-        global play_thread
-        play_thread.kill()
-        play_thread.join()
+        self.auto_play_flag = False
+        if self.auto_play_thread is not None:
+            self.auto_play_thread.join()
+            self.auto_play_thread = None
         gui.Application.instance.quit()
 
 
@@ -977,9 +981,11 @@ class AppWindow:
     def _show_ground_label(self):
         self.rd_state = AppWindow.STATE_GROUND
         self.load_pcd(self.rd.ground_pcd())
+
     def _show_pred_label(self):
         self.rd_state = AppWindow.STATE_PRED
         self.load_pcd(self.rd.pred_pcd())
+
     def _show_mistake_label(self):
         self.rd_state = AppWindow.STATE_MISTAKE
         self.load_pcd(self.rd.mistake_pcd())
@@ -991,24 +997,42 @@ class AppWindow:
         self._show()
 
     def _on_auto_play(self):
-        global play_thread
-        play_thread.change_run_state()
+        if self.auto_play_flag:
+            self.auto_play_flag = False
+            if self.auto_play_thread is not None:
+                self.auto_play_thread.join()
+                self.auto_play_thread = None
+        else:
+            if self.auto_play_thread is not None:
+                self.auto_play_thread.join()
+                self.auto_play_thread = None
+            self.auto_play_flag = True
+            self.auto_play_thread = threading.Thread(target=self._auto_play_work_thread)
+            self.auto_play_thread.start()
+
+    def _auto_play_work_thread(self):
+        while self._next_pcd() and self.auto_play_flag:
+            self.window.post_redraw()
+            time.sleep(0.1) # 10FPS
 
     def _next_pcd(self):
         if self._reader_slider.int_value +1 > self._reader_slider.get_maximum_value:
             self._create_simple_dialog('There is no extra data')
-            return
+            self.auto_play_flag = False
+            return False
         self.rd = self.reader[self._reader_slider.int_value + 1]
         self._show()
         self._reader_slider.int_value += 1
+        return True
 
     def _prev_pcd(self):
         if self._reader_slider.int_value - 1 < 0:
             self._create_simple_dialog('There is no previous data')
-            return
+            return False
         self.rd = self.reader[self._reader_slider.int_value - 1]
         self._show()
         self._reader_slider.int_value -= 1
+        return True
 
 def main():
     # We need to initalize the application, which finds the necessary shaders
@@ -1025,9 +1049,6 @@ def main():
             w.window.show_message_box("Error",
                                       "Could not open file '" + path + "'")
 
-    global play_thread
-    play_thread = AutoPlay(w._next_pcd)
-    play_thread.start()
     # Run the event loop. This will not return until the last window is closed.
     # w.load_pcd(rd.mistake_pcd())
     gui.Application.instance.run()

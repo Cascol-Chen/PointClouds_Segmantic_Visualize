@@ -23,7 +23,8 @@ class NusceneRender:
     def common(points,color):
         pcd = getPointCloud(points,color)
         pcd.estimate_normals()
-        pcd.orient_normals_consistent_tangent_plane(1)
+        ## remove this line of code for accelerating the project
+        # pcd.orient_normals_consistent_tangent_plane(1)
         return pcd
 
     def reload_color_map(self,new_color_map):
